@@ -120,8 +120,8 @@ LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs
-LDFLAGS += -nostdlib
-LDFLAGS += -nostartfiles
+# LDFLAGS += -nostdlib
+# LDFLAGS += -nostartfiles
 # # Add standard libraries at the very end of the linker input, after all objects
 # # that may need symbols provided by these libraries.
 LIB_FILES += -lc -lnosys -lm
@@ -173,6 +173,7 @@ $(ARTIFACT_DIR)/a.bin: $(ARTIFACT_DIR)/a.out
 	mkdir -p $(@D)
 	$(OBJCOPY) -O binary $< $@
 
+.DEFAULT_GOAL := all
 .PHONY: all
 all: $(ARTIFACT_DIR)/a.hex $(ARTIFACT_DIR)/a.bin
 
