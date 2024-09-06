@@ -1,3 +1,5 @@
 sdk/
 build/
 armgcc/
+compile_commands.json
+.cache/

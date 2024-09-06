@@ -1,15 +1,8 @@
-ARM_GCC_ROOT ?= ./armgcc/bin
+ARM_GCC_ROOT ?= $(shell pwd)/armgcc/bin
 GNU_PREFIX ?= arm-none-eabi
 
 CC := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-gcc
 CXX := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-c++
-LD := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-ld
-OBJCOPY := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-objcopy
-SIZE := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-size
-
-CC := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-gcc
-CXX := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-c++
-LD := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-ld
 OBJCOPY := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-objcopy
 SIZE := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-size
 
@@ -174,8 +167,11 @@ $(ARTIFACT_DIR)/a.bin: $(ARTIFACT_DIR)/a.out
 	$(OBJCOPY) -O binary $< $@
 
 .DEFAULT_GOAL := all
-.PHONY: all
+.PHONY: all clean
 all: $(ARTIFACT_DIR)/a.hex $(ARTIFACT_DIR)/a.bin
+
+clean:
+	rm -rf $(BUILD_DIR)
 
 LINKER_SCRIPT := blinky_gcc_nrf52.ld
 include $(shell find $(DEPS_DIR) -name '*.d')
