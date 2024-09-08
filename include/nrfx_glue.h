@@ -49,6 +49,9 @@ extern "C" {
  *        the needs of the host environment into which @em nrfx is integrated.
  */
 
+#include <nrf.h>
+#include <stdbool.h>
+#include <nrfx_common.h>
 #include <soc/nrfx_irqs.h>
 
 //------------------------------------------------------------------------------
@@ -70,20 +73,47 @@ extern "C" {
 
 //------------------------------------------------------------------------------
 
+// implementation from sdk/integration/nrfx/nrfx_glue.h
+#ifdef NRF51
+#ifdef SOFTDEVICE_PRESENT
+#define INTERRUPT_PRIORITY_IS_VALID(pri) (((pri) == 1) || ((pri) == 3))
+#else
+#define INTERRUPT_PRIORITY_IS_VALID(pri) ((pri) < 4)
+#endif //SOFTDEVICE_PRESENT
+#else
+#ifdef SOFTDEVICE_PRESENT
+#define INTERRUPT_PRIORITY_IS_VALID(pri) ((((pri) > 1) && ((pri) < 4)) || \
+                                          (((pri) > 4) && ((pri) < 8)))
+#else
+#define INTERRUPT_PRIORITY_IS_VALID(pri) ((pri) < 8)
+#endif //SOFTDEVICE_PRESENT
+#endif //NRF52
+
 /**
  * @brief Macro for setting the priority of a specific IRQ.
- *
+ g
  * @param irq_number IRQ number.
  * @param priority   Priority to be set.
  */
-// #define NRFX_IRQ_PRIORITY_SET(irq_number, priority)
+#define NRFX_IRQ_PRIORITY_SET(irq_number, priority) \
+    _NRFX_IRQ_PRIORITY_SET(irq_number, priority)
+static inline void _NRFX_IRQ_PRIORITY_SET(IRQn_Type irq_number,
+                                          uint8_t   priority)
+{
+    NRFX_ASSERT(INTERRUPT_PRIORITY_IS_VALID(priority));
+    NVIC_SetPriority(irq_number, priority);
+}
 
 /**
  * @brief Macro for enabling a specific IRQ.
  *
  * @param irq_number IRQ number.
  */
-// #define NRFX_IRQ_ENABLE(irq_number)
+#define NRFX_IRQ_ENABLE(irq_number)  _NRFX_IRQ_ENABLE(irq_number)
+static inline void _NRFX_IRQ_ENABLE(IRQn_Type irq_number)
+{
+    NVIC_EnableIRQ(irq_number);
+}
 
 /**
  * @brief Macro for checking if a specific IRQ is enabled.
@@ -93,28 +123,44 @@ extern "C" {
  * @retval true  If the IRQ is enabled.
  * @retval false Otherwise.
  */
-// #define NRFX_IRQ_IS_ENABLED(irq_number)
+#define NRFX_IRQ_IS_ENABLED(irq_number)  _NRFX_IRQ_IS_ENABLED(irq_number)
+static inline bool _NRFX_IRQ_IS_ENABLED(IRQn_Type irq_number)
+{
+    return 0 != (NVIC->ISER[irq_number / 32] & (1UL << (irq_number % 32)));
+}
 
 /**
  * @brief Macro for disabling a specific IRQ.
  *
  * @param irq_number IRQ number.
  */
-// #define NRFX_IRQ_DISABLE(irq_number)
+#define NRFX_IRQ_DISABLE(irq_number)  _NRFX_IRQ_DISABLE(irq_number)
+static inline void _NRFX_IRQ_DISABLE(IRQn_Type irq_number)
+{
+    NVIC_DisableIRQ(irq_number);
+}
 
 /**
  * @brief Macro for setting a specific IRQ as pending.
  *
  * @param irq_number IRQ number.
  */
-// #define NRFX_IRQ_PENDING_SET(irq_number)
+#define NRFX_IRQ_PENDING_SET(irq_number) _NRFX_IRQ_PENDING_SET(irq_number)
+static inline void _NRFX_IRQ_PENDING_SET(IRQn_Type irq_number)
+{
+    NVIC_SetPendingIRQ(irq_number);
+}
 
 /**
  * @brief Macro for clearing the pending status of a specific IRQ.
  *
  * @param irq_number IRQ number.
  */
-// #define NRFX_IRQ_PENDING_CLEAR(irq_number)
+#define NRFX_IRQ_PENDING_CLEAR(irq_number) _NRFX_IRQ_PENDING_CLEAR(irq_number)
+static inline void _NRFX_IRQ_PENDING_CLEAR(IRQn_Type irq_number)
+{
+    NVIC_ClearPendingIRQ(irq_number);
+}
 
 /**
  * @brief Macro for checking the pending status of a specific IRQ.
@@ -122,13 +168,18 @@ extern "C" {
  * @retval true  If the IRQ is pending.
  * @retval false Otherwise.
  */
-// #define NRFX_IRQ_IS_PENDING(irq_number)
+#define NRFX_IRQ_IS_PENDING(irq_number) _NRFX_IRQ_IS_PENDING(irq_number)
+static inline bool _NRFX_IRQ_IS_PENDING(IRQn_Type irq_number)
+{
+    return (NVIC_GetPendingIRQ(irq_number) == 1);
+}
 
+#include "nrf_critical_section.h"
 /** @brief Macro for entering into a critical section. */
-// #define NRFX_CRITICAL_SECTION_ENTER()
+#define NRFX_CRITICAL_SECTION_ENTER() nrf_critical_section_enter(NULL)
 
 /** @brief Macro for exiting from a critical section. */
-// #define NRFX_CRITICAL_SECTION_EXIT()
+#define NRFX_CRITICAL_SECTION_EXIT() nrf_critical_section_exit(0)
 
 //------------------------------------------------------------------------------
 
@@ -149,8 +200,10 @@ extern "C" {
 
 //------------------------------------------------------------------------------
 
+#include "nrfx_atomic.h"
+
 /** @brief Atomic 32-bit unsigned type. */
-// #define nrfx_atomic_t
+#define nrfx_atomic_t nrfx_atomic_u32_t
 
 /**
  * @brief Macro for storing a value to an atomic object and returning its previous value.
@@ -160,8 +213,7 @@ extern "C" {
  *
  * @return Previous value of the atomic object.
  */
-// #define NRFX_ATOMIC_FETCH_STORE(p_data, value)
-
+#define NRFX_ATOMIC_FETCH_STORE(p_data, value) nrfx_atomic_u32_fetch_store(p_data, value)
 /**
  * @brief Macro for running a bitwise OR operation on an atomic object and returning its previous value.
  *
@@ -170,7 +222,7 @@ extern "C" {
  *
  * @return Previous value of the atomic object.
  */
-// #define NRFX_ATOMIC_FETCH_OR(p_data, value)
+#define NRFX_ATOMIC_FETCH_OR(p_data, value) nrfx_atomic_u32_fetch_or(p_data, value)
 
 /**
  * @brief Macro for running a bitwise AND operation on an atomic object
@@ -181,7 +233,7 @@ extern "C" {
  *
  * @return Previous value of the atomic object.
  */
-// #define NRFX_ATOMIC_FETCH_AND(p_data, value)
+#define NRFX_ATOMIC_FETCH_AND(p_data, value) nrfx_atomic_u32_fetch_and(p_data, value)
 
 /**
  * @brief Macro for running a bitwise XOR operation on an atomic object
@@ -192,7 +244,7 @@ extern "C" {
  *
  * @return Previous value of the atomic object.
  */
-// #define NRFX_ATOMIC_FETCH_XOR(p_data, value)
+#define NRFX_ATOMIC_FETCH_XOR(p_data, value) nrfx_atomic_u32_fetch_xor(p_data, value)
 
 /**
  * @brief Macro for running an addition operation on an atomic object
@@ -203,7 +255,7 @@ extern "C" {
  *
  * @return Previous value of the atomic object.
  */
-// #define NRFX_ATOMIC_FETCH_ADD(p_data, value)
+#define NRFX_ATOMIC_FETCH_ADD(p_data, value) nrfx_atomic_u32_fetch_add(p_data, value)
 
 /**
  * @brief Macro for running a subtraction operation on an atomic object
@@ -214,7 +266,7 @@ extern "C" {
  *
  * @return Previous value of the atomic object.
  */
-// #define NRFX_ATOMIC_FETCH_SUB(p_data, value)
+#define NRFX_ATOMIC_FETCH_SUB(p_data, value) nrfx_atomic_u32_fetch_sub(p_data, value)
 
 /**
  * @brief Macro for running compare and swap on an atomic object.
@@ -228,7 +280,7 @@ extern "C" {
  * @retval true  If value was updated.
  * @retval false If value was not updated because location was not equal to @p old_value.
  */
-// #define NRFX_ATOMIC_CAS(p_data, old_value, new_value)
+#define NRFX_ATOMIC_CAS(p_data, old_value, new_value) nrfx_atomic_u32_cmp_exch(p_data, old_value, new_value)
 
 /**
  * @brief Macro for counting leading zeros.
@@ -238,7 +290,7 @@ extern "C" {
  * @return Number of leading 0-bits in @p value, starting at the most significant bit position.
  *         If x is 0, the result is undefined.
  */
-// #define NRFX_CLZ(value)
+#define NRFX_CLZ(value) __builtin_clz(value)
 
 /**
  * @brief Macro for counting trailing zeros.
@@ -248,7 +300,7 @@ extern "C" {
  * @return Number of trailing 0-bits in @p value, starting at the least significant bit position.
  *         If x is 0, the result is undefined.
  */
-// #define NRFX_CTZ(value)
+#define NRFX_CTZ(value) __builtin_ctz(value)
 
 //------------------------------------------------------------------------------
 
@@ -258,7 +310,7 @@ extern "C" {
  *        in a customized way and the default definitions from @c <nrfx_error.h>
  *        should not be used.
  */
-// #define NRFX_CUSTOM_ERROR_CODES 0
+#define NRFX_CUSTOM_ERROR_CODES 0
 
 //------------------------------------------------------------------------------
 
@@ -267,7 +319,7 @@ extern "C" {
  *        the event registers are read back after clearing, on devices that
  *        otherwise could defer the actual register modification.
  */
-// #define NRFX_EVENT_READBACK_ENABLED 1
+#define NRFX_EVENT_READBACK_ENABLED 1
 
 //------------------------------------------------------------------------------
 
@@ -305,25 +357,25 @@ extern "C" {
 //------------------------------------------------------------------------------
 
 /** @brief Bitmask that defines DPPI channels that are reserved for use outside of the nrfx library. */
-// #define NRFX_DPPI_CHANNELS_USED   0
+#define NRFX_DPPI_CHANNELS_USED   0
 
 /** @brief Bitmask that defines DPPI groups that are reserved for use outside of the nrfx library. */
-// #define NRFX_DPPI_GROUPS_USED     0
+#define NRFX_DPPI_GROUPS_USED     0
 
 /** @brief Bitmask that defines PPI channels that are reserved for use outside of the nrfx library. */
-// #define NRFX_PPI_CHANNELS_USED    0
+#define NRFX_PPI_CHANNELS_USED    0
 
 /** @brief Bitmask that defines PPI groups that are reserved for use outside of the nrfx library. */
-// #define NRFX_PPI_GROUPS_USED      0
+#define NRFX_PPI_GROUPS_USED      0
 
 /** @brief Bitmask that defines GPIOTE channels that are reserved for use outside of the nrfx library. */
-// #define NRFX_GPIOTE_CHANNELS_USED 0
+#define NRFX_GPIOTE_CHANNELS_USED 0
 
 /** @brief Bitmask that defines EGU instances that are reserved for use outside of the nrfx library. */
-// #define NRFX_EGUS_USED            0
+#define NRFX_EGUS_USED            0
 
 /** @brief Bitmask that defines TIMER instances that are reserved for use outside of the nrfx library. */
-// #define NRFX_TIMERS_USED          0
+#define NRFX_TIMERS_USED          0
 
 /** @} */
 

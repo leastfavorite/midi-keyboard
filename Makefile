@@ -10,7 +10,6 @@ CXX := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-c++
 OBJCOPY := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-objcopy
 SIZE := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-size
 
-SDK ?= sdk
 NRFX ?= nrfx
 CMSIS ?= CMSIS_5/CMSIS
 SRC ?= src
@@ -26,6 +25,7 @@ OBJS_DIR ?= $(BUILD_DIR)/objs
 SRC_FILES += \
 	$(NRFX)/mdk/gcc_startup_nrf$(CHIP).S \
 	$(NRFX)/mdk/system_nrf$(CHIP).c \
+	$(NRFX)/soc/nrfx_atomic.c \
 	$(wildcard $(SRC)/*.c) \
 	$(wildcard $(SRC)/*.cpp) \
 	$(wildcard $(SRC)/*.S)
