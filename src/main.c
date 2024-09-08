@@ -48,10 +48,14 @@
  *
  */
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "hal/nrf_gpio.h"
 #include "nrf_delay.h"
-#include "boards.h"
+
+#define LED_1 NRF_GPIO_PIN_MAP(0,13)
+#define LED_2 NRF_GPIO_PIN_MAP(0,14)
+#define LED_3 NRF_GPIO_PIN_MAP(0,15)
+
+#define DELAY_MS 1000
 
 /**
  * @brief Function for application main entry.
@@ -59,16 +63,19 @@
 int main(void)
 {
     /* Configure board. */
-    bsp_board_init(BSP_INIT_LEDS);
+    nrf_gpio_cfg_output(LED_1);
+    nrf_gpio_cfg_output(LED_2);
+    nrf_gpio_cfg_output(LED_3);
 
     /* Toggle LEDs. */
-    while (true)
+    while (1)
     {
-        for (int i = 0; i < LEDS_NUMBER; i++)
-        {
-            bsp_board_led_invert(i);
-            nrf_delay_ms(500);
-        }
+        nrf_gpio_pin_toggle(LED_1);
+        nrf_delay_ms(DELAY_MS);
+        nrf_gpio_pin_toggle(LED_2);
+        nrf_delay_ms(DELAY_MS);
+        nrf_gpio_pin_toggle(LED_3);
+        nrf_delay_ms(DELAY_MS);
     }
 }
 
