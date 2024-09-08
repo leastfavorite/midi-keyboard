@@ -2,18 +2,21 @@ ARM_GCC_ROOT ?= $(shell pwd)/armgcc/bin
 GNU_PREFIX ?= arm-none-eabi
 PROBE ?= /dev/cu.usbmodemJEFF1
 
+CHIP := 52840
+
 CC := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-gcc
 DB := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-gdb
 CXX := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-c++
 OBJCOPY := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-objcopy
 SIZE := $(ARM_GCC_ROOT)/$(GNU_PREFIX)-size
 
-# LINKER_SCRIPT := blinky_gcc_nrf52.ld
 SDK ?= sdk
 NRFX ?= nrfx
 CMSIS ?= CMSIS_5/CMSIS
 SRC ?= src
 INCLUDE ?= include
+
+LINKER_SCRIPT := $(NRFX)/mdk/nrf$(CHIP)_xxaa.ld
 
 BUILD_DIR ?= build
 ARTIFACT_DIR ?= $(BUILD_DIR)/artifacts
@@ -21,8 +24,8 @@ DEPS_DIR ?= $(BUILD_DIR)/deps
 OBJS_DIR ?= $(BUILD_DIR)/objs
 
 SRC_FILES += \
-	$(NRFX)/mdk/gcc_startup_nrf52840.S \
-	$(NRFX)/mdk/system_nrf52840.c \
+	$(NRFX)/mdk/gcc_startup_nrf$(CHIP).S \
+	$(NRFX)/mdk/system_nrf$(CHIP).c \
 	$(wildcard $(SRC)/*.c) \
 	$(wildcard $(SRC)/*.cpp) \
 	$(wildcard $(SRC)/*.S)
@@ -57,7 +60,7 @@ CFLAGS += -DBOARD_PCA10056
 CFLAGS += -DBSP_DEFINES_ONLY
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
-CFLAGS += -DNRF52840_XXAA
+CFLAGS += -DNRF$(CHIP)_XXAA
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 CFLAGS += -Wall -Werror
@@ -79,7 +82,7 @@ ASMFLAGS += -DBOARD_PCA10056
 ASMFLAGS += -DBSP_DEFINES_ONLY
 ASMFLAGS += -DCONFIG_GPIO_AS_PINRESET
 ASMFLAGS += -DFLOAT_ABI_HARD
-ASMFLAGS += -DNRF52840_XXAA
+ASMFLAGS += -DNRF$(CHIP)_XXAA
 ASMFLAGS += -D__HEAP_SIZE=8192
 ASMFLAGS += -D__STACK_SIZE=8192
 
@@ -163,6 +166,5 @@ flash: $(ARTIFACT_DIR)/a.out
 		-ex 'kill' \
 		$<
 
-LINKER_SCRIPT := blinky_gcc_nrf52.ld
 include $(shell find $(DEPS_DIR) -name '*.d')
 
