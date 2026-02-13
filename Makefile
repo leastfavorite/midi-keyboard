@@ -26,6 +26,7 @@ SRC_FILES += \
 	$(NRFX)/mdk/gcc_startup_nrf$(CHIP).S \
 	$(NRFX)/mdk/system_nrf$(CHIP).c \
 	$(NRFX)/soc/nrfx_atomic.c \
+	$(NRFX)/drivers/src/nrfx_uart.c \
 	$(wildcard $(SRC)/*.c) \
 	$(wildcard $(SRC)/*.cpp) \
 	$(wildcard $(SRC)/*.S)
@@ -33,6 +34,7 @@ SRC_FILES += \
 INCLUDE_FOLDERS += \
 	$(INCLUDE) \
 	$(NRFX)/mdk \
+	$(NRFX)/drivers/include \
 	$(NRFX)/hal \
 	$(NRFX)/drivers \
 	$(NRFX)/soc \
@@ -94,7 +96,7 @@ LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # let linker dump unused sections
 LDFLAGS += -Wl,--gc-sections
 # use newlib in nano version
-LDFLAGS += --specs=nano.specs
+# LDFLAGS += --specs=nano.specs
 # LDFLAGS += -nostdlib
 # LDFLAGS += -nostartfiles
 # # Add standard libraries at the very end of the linker input, after all objects
