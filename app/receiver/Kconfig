@@ -1,0 +1,8 @@
+source "Kconfig.zephyr"
+
+menu "Wireless MIDI Keyboard: Receiver"
+
+config RECV_LOG_LEVEL
+    int "Log level for the Wireless MIDI Keyboard Receiver"
+    default 4
+endmenu
