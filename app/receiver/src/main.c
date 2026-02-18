@@ -1,62 +1,48 @@
-#include <zephyr/drivers/clock_control.h>
-#include <zephyr/drivers/clock_control/nrf_clock_control.h>
+/*
+ * Copyright (c) 2016 Intel Corporation
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <stdio.h>
 #include <zephyr/kernel.h>
-#include <zephyr/logging/log.h>
-#include <zephyr/sys/util.h>
-#include <hw_id.h>
+#include <zephyr/drivers/gpio.h>
 
-LOG_MODULE_REGISTER(recv, CONFIG_RECV_LOG_LEVEL);
+/* 1000 msec = 1 sec */
+#define SLEEP_TIME_MS   1000
 
-int initialize_clocks(void) {
-	int err;
-	int res;
-	struct onoff_manager *clk_mgr;
-	struct onoff_client clk_cli;
+/* The devicetree node identifier for the "led0" alias. */
+#define LED0_NODE DT_ALIAS(led0)
 
-	clk_mgr = z_nrf_clock_control_get_onoff(CLOCK_CONTROL_NRF_SUBSYS_HF);
-	if (!clk_mgr) {
-		LOG_ERR("Unable to get the Clock manager");
-		return -ENXIO;
+/*
+ * A build error on this line means your board is unsupported.
+ * See the sample documentation for information on how to fix this.
+ */
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+
+int main(void)
+{
+	int ret;
+	bool led_state = true;
+
+	if (!gpio_is_ready_dt(&led)) {
+		return 0;
 	}
 
-	sys_notify_init_spinwait(&clk_cli.notify);
-
-	err = onoff_request(clk_mgr, &clk_cli);
-	if (err < 0) {
-		LOG_ERR("Clock request failed: %d", err);
-		return err;
-	}
-
-	do {
-		err = sys_notify_fetch_result(&clk_cli.notify, &res);
-		if (!err && res) {
-			LOG_ERR("Clock could not be started: %d", res);
-			return res;
-		}
-	} while (err);
-
-	LOG_DBG("HF clock started");
-	return 0;
-}
-
-int main() {
-	int err;
-	err = initialize_clocks();
-	if (err) {
-		return err;
-	}
-	char buf[HW_ID_LEN];
-
-	err = hw_id_get(buf, HW_ID_LEN);
-
-	if (err) {
-		LOG_ERR("hw_id_get failed: %d\n", err);
-		return err;
+	ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+	if (ret < 0) {
+		return 0;
 	}
 
 	while (1) {
-		k_msleep(1000);
-		LOG_INF("hw_id: %s\n", buf);
+		ret = gpio_pin_toggle_dt(&led);
+		if (ret < 0) {
+			return 0;
+		}
+
+		led_state = !led_state;
+		printf("LED state: %s\n", led_state ? "ON" : "OFF");
+		k_msleep(SLEEP_TIME_MS);
 	}
 	return 0;
 }
